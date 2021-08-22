@@ -38,6 +38,7 @@ func main() {
 	pkg := pkgs[0]
 
 	var types []polyjson.Type
+	var typeNames []string
 	for _, name := range strings.Split(*interfaces, ",") {
 		typ, err := polyjson.TypeFromInterface(pkg.Syntax, name, *discriminant)
 		if err != nil {
@@ -45,10 +46,17 @@ func main() {
 			os.Exit(200)
 		}
 		types = append(types, *typ)
+		typeNames = append(typeNames, typ.Name)
+	}
+
+	structs, err := polyjson.PolymorphicStructFields(pkg.Syntax, typeNames)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(300)
 	}
 
 	outFile := filepath.Join(*packagePath, *file)
-	if err := polyjson.WriteMarshalerFile(outFile, pkg.Name, types); err != nil {
+	if err := polyjson.WriteMarshalerFile(outFile, pkg.Name, types, structs); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(300)
 	}

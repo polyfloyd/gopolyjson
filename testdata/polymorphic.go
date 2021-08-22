@@ -29,3 +29,18 @@ func (Triangle) xxxShape() {}
 func (Square) xxxShape()   {}
 func (Polygon) xxxShape()  {}
 func (Circle) xxxShape()   {}
+
+type Area struct {
+	Color string
+	Shape Shape `json:"shape"`
+}
+
+type Pattern struct {
+	Size   int
+	Shapes []Shape `json:"shapes"`
+}
+
+type ShapeShifter struct {
+	From, To Shape
+	SkipMe   Shape `json:"-"`
+}
