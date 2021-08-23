@@ -37,11 +37,11 @@ func (v {{ . }}) MarshalJSON() ([]byte, error) {
 var _ json.Marshaler = {{ . }}{}
 {{- end  }}
 
-func Unmarshal{{ .Name }}JSON(_json []byte) ({{ .Name }}, error) {
+func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
 	var probe struct {
 		Kind string ` + "`json:\"{{ $type.Discriminant }}\"`" + `
 	}
-	if err := json.Unmarshal(_json, &probe); err != nil {
+	if err := json.Unmarshal(b, &probe); err != nil {
 		return nil, err
 	}
 
@@ -49,7 +49,7 @@ func Unmarshal{{ .Name }}JSON(_json []byte) ({{ .Name }}, error) {
 {{- range .Variants }}
 	case "{{ . }}":
 		var v {{ . }}
-		if err := json.Unmarshal(_json, &v); err != nil {
+		if err := json.Unmarshal(b, &v); err != nil {
 			return nil, err
 		}
 		return v, nil
@@ -62,7 +62,7 @@ func Unmarshal{{ .Name }}JSON(_json []byte) ({{ .Name }}, error) {
 {{ range .Structs }}
 // JSON marshaler implementations for {{ .Name }} containing polymorphic fields.
 
-func (v *{{ .Name }}) UnmarshalJSON(_json []byte) error {
+func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
 	var data struct {
 		rawjson{{ .Name }}
 		{{- range .PolymorphicFields }}
@@ -74,39 +74,39 @@ func (v *{{ .Name }}) UnmarshalJSON(_json []byte) error {
 		{{- with .JSONName }}` + " `json:\"{{ . }}\"`" + `{{ end }}
 		{{- end }}
 	}
-	if err := json.Unmarshal(_json, &data); err != nil {
+	if err := json.Unmarshal(b, &data); err != nil {
 		return err
 	}
 {{ range .PolymorphicFields }}
 	{{- if eq .Kind "Scalar" }}
-	{{ lower .Name }}, err := Unmarshal{{ .Type }}JSON(data.{{ .Name }})
+	{{ lower .Name }}Field, err := Unmarshal{{ .Type }}JSON(data.{{ .Name }})
 	if err != nil {
 		return err
 	}
 	{{- else if eq .Kind "Slice" }}
-	var {{ lower .Name }} []{{ .Type }}
+	var {{ lower .Name }}Field []{{ .Type }}
 	for i, r := range data.{{ .Name }} {
 		v, err := Unmarshal{{ .Type }}JSON(r)
 		if err != nil {
 			return err
 		}
-		{{ lower .Name }}[i] = v
+		{{ lower .Name }}Field[i] = v
 	}
 	{{- else if eq .Kind "Map" }}
-	{{ lower .Name }} := map[string]{{ .Type }}{}
+	{{ lower .Name }}Field := map[string]{{ .Type }}{}
 	for k, r := range data.{{ .Name }} {
 		v, err := Unmarshal{{ .Type }}JSON(r)
 		if err != nil {
 			return err
 		}
-		{{ lower .Name }}[k] = v
+		{{ lower .Name }}Field[k] = v
 	}
 	{{- end }}
 	{{- end }}
 
 	*v = {{ .Name }}(data.rawjson{{ .Name }})
 	{{- range .PolymorphicFields }}
-	v.{{ .Name }} = {{ lower .Name }}
+	v.{{ .Name }} = {{ lower .Name }}Field
 	{{- end }}
 	return nil
 }

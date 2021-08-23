@@ -53,4 +53,5 @@ type NamedPattern struct {
 type ShapeShifter struct {
 	From, To Shape
 	SkipMe   Shape `json:"-"`
+	Err      Shape
 }
