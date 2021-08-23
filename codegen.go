@@ -84,7 +84,7 @@ func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	{{- else if eq .Kind "Slice" }}
-	var {{ lower .Name }}Field []{{ .Type }}
+	{{ lower .Name }}Field := make([]{{ .Type }}, len(data.{{ .Name }}))
 	for i, r := range data.{{ .Name }} {
 		v, err := Unmarshal{{ .Type }}JSON(r)
 		if err != nil {
