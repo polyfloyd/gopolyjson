@@ -40,6 +40,11 @@ type Pattern struct {
 	Shapes []Shape `json:"shapes"`
 }
 
+type NamedPattern struct {
+	Sizes  map[string]int   `json:"sizes"`
+	Shapes map[string]Shape `json:"named_shapes"`
+}
+
 type ShapeShifter struct {
 	From, To Shape
 	SkipMe   Shape `json:"-"`

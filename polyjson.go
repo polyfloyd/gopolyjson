@@ -21,7 +21,7 @@ type (
 		Name     string // Name of the field in the struct.
 		JSONName string // Name of the field as encoded in JSON.
 		Type     string // Name of the polymorphic type.
-		Slice    bool   // Whether the field is a slice.
+		Kind     string // How the unmarshaling logic should behave. "Scalar" | "Slice" | "Map"
 	}
 )
 
@@ -99,28 +99,38 @@ func PolymorphicStructFields(files []*ast.File, polymorphicTypes []string) ([]St
 
 		var polymorphicFields []StructField
 		for _, field := range struc.Fields.List {
-			if ident, ok := field.Type.(*ast.Ident); ok {
-				if containsString(polymorphicTypes, ident.Name) {
+			if ident, ok := field.Type.(*ast.Ident); ok && containsString(polymorphicTypes, ident.Name) {
+				for _, name := range field.Names {
+					polymorphicFields = append(polymorphicFields, StructField{
+						Name:     name.Name,
+						JSONName: jsonFieldName(field),
+						Type:     ident.Name,
+						Kind:     "Scalar",
+					})
+				}
+				continue
+			}
+			if arr, ok := field.Type.(*ast.ArrayType); ok {
+				if ident, ok := arr.Elt.(*ast.Ident); ok && containsString(polymorphicTypes, ident.Name) {
 					for _, name := range field.Names {
 						polymorphicFields = append(polymorphicFields, StructField{
 							Name:     name.Name,
 							JSONName: jsonFieldName(field),
 							Type:     ident.Name,
-							Slice:    false,
+							Kind:     "Slice",
 						})
 					}
-					continue
 				}
 			}
-			if arr, ok := field.Type.(*ast.ArrayType); ok {
-				if ident, ok := arr.Elt.(*ast.Ident); ok {
-					if containsString(polymorphicTypes, ident.Name) {
+			if mp, ok := field.Type.(*ast.MapType); ok {
+				if keyIdent, ok := mp.Key.(*ast.Ident); ok && keyIdent.Name == "string" {
+					if ident, ok := mp.Value.(*ast.Ident); ok && containsString(polymorphicTypes, ident.Name) {
 						for _, name := range field.Names {
 							polymorphicFields = append(polymorphicFields, StructField{
 								Name:     name.Name,
 								JSONName: jsonFieldName(field),
 								Type:     ident.Name,
-								Slice:    true,
+								Kind:     "Map",
 							})
 						}
 					}

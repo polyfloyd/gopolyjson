@@ -68,18 +68,24 @@ func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
 	var data struct {
 		rawjson{{ .Name }}
 		{{- range .PolymorphicFields }}
-{{ if .Slice }}
-		{{ .Name }} []json.RawMessage{{ with .JSONName }}` + " `json:\"{{ . }}\"`" + `{{ end }}
-		{{- else }}
-		{{ .Name }} json.RawMessage{{ with .JSONName }}` + " `json:\"{{ . }}\"`" + `{{ end }}
+
+		{{ if eq .Kind "Scalar" }}{{ .Name }} json.RawMessage
+		{{- else if eq .Kind "Slice" }}{{ .Name }} []json.RawMessage
+		{{- else if eq .Kind "Map" }}{{ .Name }} map[string]json.RawMessage
 		{{- end }}
+		{{- with .JSONName }}` + " `json:\"{{ . }}\"`" + `{{ end }}
 		{{- end }}
 	}
 	if err := json.Unmarshal(b, &data); err != nil {
 		return err
 	}
 {{ range .PolymorphicFields }}
-	{{- if .Slice }}
+	{{- if eq .Kind "Scalar" }}
+	{{ lower .Name }}, err := Unmarshal{{ .Type }}JSON(data.{{ .Name }})
+	if err != nil {
+		return err
+	}
+	{{- else if eq .Kind "Slice" }}
 	var {{ lower .Name }} []{{ .Type }}
 	for i, r := range data.{{ .Name }} {
 		v, err := Unmarshal{{ .Type }}JSON(r)
@@ -88,10 +94,14 @@ func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
 		}
 		{{ lower .Name }}[i] = v
 	}
-	{{- else }}
-	{{ lower .Name }}, err := Unmarshal{{ .Type }}JSON(data.{{ .Name }})
-	if err != nil {
-		return err
+	{{- else if eq .Kind "Map" }}
+	{{ lower .Name }} := map[string]{{ .Type }}{}
+	for k, r := range data.{{ .Name }} {
+		v, err := Unmarshal{{ .Type }}JSON(r)
+		if err != nil {
+			return err
+		}
+		{{ lower .Name }}[k] = v
 	}
 	{{- end }}
 	{{- end }}
