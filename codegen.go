@@ -18,14 +18,14 @@ import (
 	"encoding/json"
 	"fmt"
 )
+{{ range .RawAliases }}
+type rawjson{{ . }} {{ . }}
+{{ end }}
 
 {{- range $type := .Types }}
-
 // JSON marshaler implementations for {{ .Name }}.
 
 {{- range .Variants }}
-
-type rawjson{{ . }} {{ . }}
 
 func (v {{ . }}) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
@@ -37,11 +37,11 @@ func (v {{ . }}) MarshalJSON() ([]byte, error) {
 var _ json.Marshaler = {{ . }}{}
 {{- end  }}
 
-func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
+func Unmarshal{{ .Name }}JSON(_json []byte) ({{ .Name }}, error) {
 	var probe struct {
 		Kind string ` + "`json:\"{{ $type.Discriminant }}\"`" + `
 	}
-	if err := json.Unmarshal(b, &probe); err != nil {
+	if err := json.Unmarshal(_json, &probe); err != nil {
 		return nil, err
 	}
 
@@ -49,7 +49,7 @@ func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
 {{- range .Variants }}
 	case "{{ . }}":
 		var v {{ . }}
-		if err := json.Unmarshal(b, &v); err != nil {
+		if err := json.Unmarshal(_json, &v); err != nil {
 			return nil, err
 		}
 		return v, nil
@@ -62,9 +62,7 @@ func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
 {{ range .Structs }}
 // JSON marshaler implementations for {{ .Name }} containing polymorphic fields.
 
-type rawjson{{ .Name }} {{ .Name }}
-
-func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
+func (v *{{ .Name }}) UnmarshalJSON(_json []byte) error {
 	var data struct {
 		rawjson{{ .Name }}
 		{{- range .PolymorphicFields }}
@@ -76,7 +74,7 @@ func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
 		{{- with .JSONName }}` + " `json:\"{{ . }}\"`" + `{{ end }}
 		{{- end }}
 	}
-	if err := json.Unmarshal(b, &data); err != nil {
+	if err := json.Unmarshal(_json, &data); err != nil {
 		return err
 	}
 {{ range .PolymorphicFields }}
@@ -131,10 +129,24 @@ func WriteMarshalerFile(filename, goPackage string, types []Type, structs []Stru
 	}
 	defer fd.Close()
 
+	// Separate out data for a loop that declares the rawjson type aliases.
+	// This can not be done in the loops of types and structs because a type
+	// referencing itself will create multiple of such rawjson types.
+	rawAliases := []string{}
+	for _, typ := range types {
+		rawAliases = append(rawAliases, typ.Variants...)
+	}
+	for _, struc := range structs {
+		if !containsString(rawAliases, struc.Name) {
+			rawAliases = append(rawAliases, struc.Name)
+		}
+	}
+
 	err = codeTemplate.Execute(fd, struct {
-		Package string
-		Types   []Type
-		Structs []Struct
-	}{Package: goPackage, Types: types, Structs: structs})
+		Package    string
+		Types      []Type
+		Structs    []Struct
+		RawAliases []string
+	}{Package: goPackage, Types: types, Structs: structs, RawAliases: rawAliases})
 	return err
 }

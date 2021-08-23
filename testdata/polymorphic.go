@@ -21,6 +21,10 @@ type (
 	}
 )
 
+type Union struct {
+	A, B Shape
+}
+
 type Shape interface {
 	xxxShape()
 }
@@ -29,6 +33,7 @@ func (Triangle) xxxShape() {}
 func (Square) xxxShape()   {}
 func (Polygon) xxxShape()  {}
 func (Circle) xxxShape()   {}
+func (Union) xxxShape()    {}
 
 type Area struct {
 	Color string
