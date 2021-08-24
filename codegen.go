@@ -15,6 +15,7 @@ var codeTemplate = template.Must(template.New("codegen").Funcs(template.FuncMap{
 package {{ .Package }}
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -38,6 +39,10 @@ var _ json.Marshaler = {{ . }}{}
 {{- end  }}
 
 func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
+	if len(b) == 0 || bytes.Equal(b, []byte("null")) {
+		return nil, nil
+	}
+
 	var probe struct {
 		Kind string ` + "`json:\"{{ $type.Discriminant }}\"`" + `
 	}
