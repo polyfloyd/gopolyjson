@@ -63,7 +63,7 @@ func TypeFromInterface(files []*ast.File, interfaceName, discriminant string) (*
 		typeFunctionName = name
 	}
 	if typeFunctionName == "" {
-		return nil, fmt.Errorf("interface %q has no function that can be used to locate variants", iface.Name.Name)
+		return nil, fmt.Errorf("interface %q has no function that can be used to locate variants", interfaceName)
 	}
 
 	var variantNames []string
@@ -79,7 +79,7 @@ func TypeFromInterface(files []*ast.File, interfaceName, discriminant string) (*
 		}
 	}
 	if len(variantNames) == 0 {
-		return nil, fmt.Errorf("interface %q has implementors")
+		return nil, fmt.Errorf("interface %q has no implementors", interfaceName)
 	}
 
 	return &Type{
