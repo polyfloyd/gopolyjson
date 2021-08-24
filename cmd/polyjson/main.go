@@ -11,14 +11,14 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-var (
-	interfaces   = flag.String("interfaces", "", "The comma sepparated names of the interfaces denoting polymorphic types")
-	discriminant = flag.String("discriminant", "kind", "The name of the JSON field that holds the variant name")
-	file         = flag.String("file", "polyjsongen.go", "The name of the file written to the package")
-	packagePath  = flag.String("package", "", "The scoped package path")
-)
-
 func main() {
+	var typeArgs typesFlags
+	flag.Var(&typeArgs, "type", "Specify a type and optional variant mappings. This flag can be specified multiple times for each type. Pattern: <interface>:[variant2[=jsonVariant2],]..")
+
+	discriminant := flag.String("discriminant", "kind", "The name of the JSON field that holds the variant name")
+
+	file := flag.String("file", "polyjsongen.go", "The name of the file written to the package")
+	packagePath := flag.String("package", "", "The scoped package path")
 	flag.Parse()
 
 	if *packagePath == "" {
@@ -39,8 +39,9 @@ func main() {
 
 	var types []polyjson.Type
 	var typeNames []string
-	for _, name := range strings.Split(*interfaces, ",") {
-		typ, err := polyjson.TypeFromInterface(pkg.Syntax, name, *discriminant)
+	for _, typeArg := range typeArgs {
+		typeArg.Discriminant = *discriminant
+		typ, err := polyjson.TypeFromInterface(pkg.Syntax, typeArg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(200)
@@ -60,4 +61,40 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(300)
 	}
+}
+
+type typesFlags []polyjson.TypeFromInterfaceArgs
+
+func (*typesFlags) String() string {
+	return "Type specifications"
+}
+
+func (f *typesFlags) Set(value string) error {
+	iface := strings.Split(value, ":")
+	if len(iface) == 1 {
+		*f = append(*f, polyjson.TypeFromInterfaceArgs{
+			Interface:    iface[0],
+			VariantRemap: map[string]string{},
+		})
+		return nil
+	}
+
+	variants := map[string]string{}
+	for _, variantGroup := range strings.Split(iface[1], ",") {
+		if variantGroup == "" {
+			continue
+		}
+		ss := strings.Split(variantGroup, "=")
+		name, jsonName := ss[0], ss[0]
+		if len(ss) == 2 {
+			jsonName = ss[1]
+		}
+		variants[name] = jsonName
+	}
+
+	*f = append(*f, polyjson.TypeFromInterfaceArgs{
+		Interface:    iface[0],
+		VariantRemap: variants,
+	})
+	return nil
 }

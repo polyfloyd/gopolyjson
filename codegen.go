@@ -28,14 +28,14 @@ type rawjson{{ . }} {{ . }}
 
 {{- range .Variants }}
 
-func (v {{ . }}) MarshalJSON() ([]byte, error) {
+func (v {{ .Name }}) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		rawjson{{ . }}
+		rawjson{{ .Name }}
 		Kind string ` + "`json:\"{{ $type.Discriminant }}\"`" + `
-	}{rawjson{{ . }}: rawjson{{ . }}(v), Kind: "{{ . }}"})
+	}{rawjson{{ .Name }}: rawjson{{ .Name }}(v), Kind: "{{ .JSONName }}"})
 }
 
-var _ json.Marshaler = {{ . }}{}
+var _ json.Marshaler = {{ .Name }}{}
 {{- end  }}
 
 func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
@@ -52,10 +52,10 @@ func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
 
 	switch probe.Kind {
 {{- range .Variants }}
-	case "{{ . }}":
-		var v {{ . }}
+	case "{{ .JSONName }}":
+		var v {{ .Name }}
 		if err := json.Unmarshal(b, &v); err != nil {
-			return nil, fmt.Errorf("unmarshal {{ . }}: %v", err)
+			return nil, fmt.Errorf("unmarshal {{ .Name }}: %v", err)
 		}
 		return v, nil
 {{- end }}
@@ -139,7 +139,9 @@ func WriteMarshalerFile(filename, goPackage string, types []Type, structs []Stru
 	// referencing itself will create multiple of such rawjson types.
 	rawAliases := []string{}
 	for _, typ := range types {
-		rawAliases = append(rawAliases, typ.Variants...)
+		for _, variant := range typ.Variants {
+			rawAliases = append(rawAliases, variant.Name)
+		}
 	}
 	for _, struc := range structs {
 		if !containsString(rawAliases, struc.Name) {

@@ -6,11 +6,17 @@ import (
 	"regexp"
 )
 
-type Type struct {
-	Name         string
-	Variants     []string
-	Discriminant string
-}
+type (
+	Type struct {
+		Name         string
+		Variants     []TypeVariant
+		Discriminant string
+	}
+	TypeVariant struct {
+		Name     string
+		JSONName string
+	}
+)
 
 type (
 	Struct struct {
@@ -25,19 +31,25 @@ type (
 	}
 )
 
-func TypeFromInterface(files []*ast.File, interfaceName, discriminant string) (*Type, error) {
+type TypeFromInterfaceArgs struct {
+	Interface    string
+	Discriminant string
+	VariantRemap map[string]string
+}
+
+func TypeFromInterface(files []*ast.File, args TypeFromInterfaceArgs) (*Type, error) {
 	// Find the interface denoted by the type name.
 	var iface *ast.TypeSpec
 	for typeSpec := range iterTypeSpecs(files) {
 		if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
-			if interfaceName == typeSpec.Name.Name {
+			if args.Interface == typeSpec.Name.Name {
 				iface = typeSpec
 				// No break, consume the iterator.
 			}
 		}
 	}
 	if iface == nil {
-		return nil, fmt.Errorf("unable to locate interface declaration for %q", interfaceName)
+		return nil, fmt.Errorf("unable to locate interface declaration for %q", args.Interface)
 	}
 
 	// Find the function that is expected to be implemented by type variants.
@@ -63,10 +75,10 @@ func TypeFromInterface(files []*ast.File, interfaceName, discriminant string) (*
 		typeFunctionName = name
 	}
 	if typeFunctionName == "" {
-		return nil, fmt.Errorf("interface %q has no function that can be used to locate variants", interfaceName)
+		return nil, fmt.Errorf("interface %q has no function that can be used to locate variants", args.Interface)
 	}
 
-	var variantNames []string
+	var variants []TypeVariant
 	for typeSpec := range iterFuncDecls(files) {
 		if typeSpec.Name.Name != typeFunctionName {
 			continue
@@ -75,17 +87,37 @@ func TypeFromInterface(files []*ast.File, interfaceName, discriminant string) (*
 			continue
 		}
 		if ident, ok := typeSpec.Recv.List[0].Type.(*ast.Ident); ok {
-			variantNames = append(variantNames, ident.Name)
+			jsonName, ok := args.VariantRemap[ident.Name]
+			if !ok {
+				jsonName = ident.Name
+			}
+			variants = append(variants, TypeVariant{
+				Name:     ident.Name,
+				JSONName: jsonName,
+			})
 		}
 	}
-	if len(variantNames) == 0 {
-		return nil, fmt.Errorf("interface %q has no implementors", interfaceName)
+	if len(variants) == 0 {
+		return nil, fmt.Errorf("interface %q has no implementors", args.Interface)
+	}
+
+outer:
+	for name, jsonName := range args.VariantRemap {
+		for _, variant := range variants {
+			if name == variant.Name {
+				continue outer
+			}
+		}
+		variants = append(variants, TypeVariant{
+			Name:     name,
+			JSONName: jsonName,
+		})
 	}
 
 	return &Type{
-		Name:         interfaceName,
-		Variants:     variantNames,
-		Discriminant: discriminant,
+		Name:         args.Interface,
+		Variants:     variants,
+		Discriminant: args.Discriminant,
 	}, nil
 }
 
