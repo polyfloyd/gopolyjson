@@ -47,7 +47,7 @@ func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
 		Kind string ` + "`json:\"{{ $type.Discriminant }}\"`" + `
 	}
 	if err := json.Unmarshal(b, &probe); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal {{ .Name }} {{ $type.Discriminant }}: %v", err)
 	}
 
 	switch probe.Kind {
@@ -55,7 +55,7 @@ func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
 	case "{{ . }}":
 		var v {{ . }}
 		if err := json.Unmarshal(b, &v); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unmarshal {{ . }}: %v", err)
 		}
 		return v, nil
 {{- end }}
@@ -64,7 +64,7 @@ func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
 	}
 }
 {{- end }}
-{{ range .Structs }}
+{{ range $struct := .Structs }}
 // JSON marshaler implementations for {{ .Name }} containing polymorphic fields.
 
 func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
@@ -80,20 +80,20 @@ func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
 		{{- end }}
 	}
 	if err := json.Unmarshal(b, &data); err != nil {
-		return err
+		return fmt.Errorf("unmarshal {{ $struct.Name }}: %v", err)
 	}
 {{ range .PolymorphicFields }}
 	{{- if eq .Kind "Scalar" }}
 	{{ lower .Name }}Field, err := Unmarshal{{ .Type }}JSON(data.{{ .Name }})
 	if err != nil {
-		return err
+		return fmt.Errorf("unmarshal {{ $struct.Name }}.{{ .Name }}: %v", err)
 	}
 	{{- else if eq .Kind "Slice" }}
 	{{ lower .Name }}Field := make([]{{ .Type }}, len(data.{{ .Name }}))
 	for i, r := range data.{{ .Name }} {
 		v, err := Unmarshal{{ .Type }}JSON(r)
 		if err != nil {
-			return err
+			return fmt.Errorf("unmarshal {{ $struct.Name }}.{{ .Name }}[%d]: %v", i, err)
 		}
 		{{ lower .Name }}Field[i] = v
 	}
@@ -102,7 +102,7 @@ func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
 	for k, r := range data.{{ .Name }} {
 		v, err := Unmarshal{{ .Type }}JSON(r)
 		if err != nil {
-			return err
+			return fmt.Errorf("unmarshal {{ $struct.Name }}.{{ .Name }}[%s]: %v", k, err)
 		}
 		{{ lower .Name }}Field[k] = v
 	}
