@@ -1,6 +1,8 @@
 Go PolyJSON
 ===========
 
+[![Build Status](https://github.com/polyfloyd/go-polyjson/workflows/CI/badge.svg)](https://github.com/polyfloyd/go-polyjson/actions)
+
 Go Code generator for JSON marshalers/unmarshalers for polymorphic
 data structures.
 
