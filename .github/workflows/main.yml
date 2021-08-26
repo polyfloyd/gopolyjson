@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron:  '0 0 * * 1' # weekly
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Get dependencies
+      run: go get -v -t -d ./...
+    - name: go build
+      run: go build -v ./cmd/polyjson
+    - name: generate testdata marshalers
+      run: ./polyjson -type Shape -package ./testdata
+    - name: gofmt testdata
+      run: gofmt -s -d testdata/polyjsongen.go
+    - name: go test
+      run: go test -test.v -race -cover ./...
+    - name: go test testdata
+      run: go test -test.v -race -cover ./testdata
