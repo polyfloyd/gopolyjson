@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/tools/go/packages"
 
-	"github.com/polyfloyd/go-polyjson"
+	polyjson "github.com/polyfloyd/gopolyjson"
 )
 
 func main() {

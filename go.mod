@@ -1,4 +1,4 @@
-module github.com/polyfloyd/go-polyjson
+module github.com/polyfloyd/gopolyjson
 
 go 1.18
 

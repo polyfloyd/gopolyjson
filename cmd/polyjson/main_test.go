@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/polyfloyd/go-polyjson"
+	polyjson "github.com/polyfloyd/gopolyjson"
 )
 
 func TestTypeFlag(t *testing.T) {
