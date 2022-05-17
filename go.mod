@@ -1,6 +1,6 @@
-module polyjson
+module github.com/polyfloyd/go-polyjson
 
-go 1.17
+go 1.18
 
 require (
 	golang.org/x/mod v0.4.2 // indirect

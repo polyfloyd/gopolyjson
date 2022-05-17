@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"polyjson"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
+
+	"github.com/polyfloyd/go-polyjson"
 )
 
 func main() {

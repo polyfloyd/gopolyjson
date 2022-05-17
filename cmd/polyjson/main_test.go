@@ -1,9 +1,10 @@
 package main
 
 import (
-	"polyjson"
 	"reflect"
 	"testing"
+
+	"github.com/polyfloyd/go-polyjson"
 )
 
 func TestTypeFlag(t *testing.T) {
