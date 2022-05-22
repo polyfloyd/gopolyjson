@@ -1,13 +1,17 @@
 Go PolyJSON
 ===========
 
-[![Build Status](https://github.com/polyfloyd/go-polyjson/workflows/CI/badge.svg)](https://github.com/polyfloyd/go-polyjson/actions)
+[![Build Status](https://github.com/polyfloyd/gopolyjson/workflows/CI/badge.svg)](https://github.com/polyfloyd/gopolyjson/actions)
 
 Go Code generator of JSON marshalers/unmarshalers for polymorphic
 data structures.
 
 
 ## Usage
+```
+go install -v github.com/polyfloyd/gopolyjson/cmd/polyjson@latest
+```
+
 The program targets a single package and generates marshalers for one or more
 polymorphic types along with unmarshalers for structures that use such
 polymorphic types in fields.
