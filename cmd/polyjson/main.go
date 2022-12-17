@@ -27,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg := &packages.Config{Mode: packages.NeedSyntax | packages.NeedName}
+	cfg := &packages.Config{Mode: packages.NeedSyntax | packages.NeedFiles | packages.NeedName}
 	pkgs, err := packages.Load(cfg, *packagePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

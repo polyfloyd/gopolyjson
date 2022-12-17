@@ -38,6 +38,9 @@ type TypeFromInterfaceArgs struct {
 }
 
 func TypeFromInterface(files []*ast.File, args TypeFromInterfaceArgs) (*Type, error) {
+	if len(files) == 0 {
+		return nil, fmt.Errorf("TypeFromInterfaceno files were specified")
+	}
 	// Find the interface denoted by the type name.
 	var iface *ast.TypeSpec
 	for typeSpec := range iterTypeSpecs(files) {
