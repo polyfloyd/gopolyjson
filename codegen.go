@@ -19,7 +19,8 @@ import (
 	"encoding/json"
 	"fmt"
 )
-{{ range $type := .Types }}
+{{- range $type := .Types }}
+
 // JSON marshaler implementations for {{ .Name }}.
 
 {{- range .Variants }}
