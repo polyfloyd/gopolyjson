@@ -19,20 +19,17 @@ import (
 	"encoding/json"
 	"fmt"
 )
-{{ range .RawAliases }}
-type rawjson{{ . }} {{ . }}
-{{ end }}
-
-{{- range $type := .Types }}
+{{ range $type := .Types }}
 // JSON marshaler implementations for {{ .Name }}.
 
 {{- range .Variants }}
 
 func (v {{ .Name }}) MarshalJSON() ([]byte, error) {
+	type raw{{ .Name }} {{ .Name }}
 	return json.Marshal(struct {
-		rawjson{{ .Name }}
+		raw{{ .Name }}
 		Kind string ` + "`json:\"{{ $type.Discriminant }}\"`" + `
-	}{rawjson{{ .Name }}: rawjson{{ .Name }}(v), Kind: "{{ .JSONName }}"})
+	}{raw{{ .Name }}: raw{{ .Name }}(v), Kind: "{{ .JSONName }}"})
 }
 
 var _ json.Marshaler = {{ .Name }}{}
@@ -68,8 +65,9 @@ func Unmarshal{{ .Name }}JSON(b []byte) ({{ .Name }}, error) {
 // JSON marshaler implementations for {{ .Name }} containing polymorphic fields.
 
 func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
+	type raw{{ .Name }} {{ .Name }}
 	var data struct {
-		rawjson{{ .Name }}
+		raw{{ .Name }}
 		{{- range .PolymorphicFields }}
 
 		{{ if eq .Kind "Scalar" }}{{ .Name }} json.RawMessage
@@ -109,7 +107,7 @@ func (v *{{ .Name }}) UnmarshalJSON(b []byte) error {
 	{{- end }}
 	{{- end }}
 
-	*v = {{ .Name }}(data.rawjson{{ .Name }})
+	*v = {{ .Name }}(data.raw{{ .Name }})
 	{{- range .PolymorphicFields }}
 	v.{{ .Name }} = {{ lower .Name }}Field
 	{{- end }}
@@ -134,26 +132,10 @@ func WriteMarshalerFile(filename, goPackage string, types []Type, structs []Stru
 	}
 	defer fd.Close()
 
-	// Separate out data for a loop that declares the rawjson type aliases.
-	// This can not be done in the loops of types and structs because a type
-	// referencing itself will create multiple of such rawjson types.
-	rawAliases := []string{}
-	for _, typ := range types {
-		for _, variant := range typ.Variants {
-			rawAliases = append(rawAliases, variant.Name)
-		}
-	}
-	for _, struc := range structs {
-		if !containsString(rawAliases, struc.Name) {
-			rawAliases = append(rawAliases, struc.Name)
-		}
-	}
-
 	err = codeTemplate.Execute(fd, struct {
-		Package    string
-		Types      []Type
-		Structs    []Struct
-		RawAliases []string
-	}{Package: goPackage, Types: types, Structs: structs, RawAliases: rawAliases})
+		Package string
+		Types   []Type
+		Structs []Struct
+	}{Package: goPackage, Types: types, Structs: structs})
 	return err
 }
