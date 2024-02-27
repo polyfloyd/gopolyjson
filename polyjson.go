@@ -59,7 +59,6 @@ func TypeFromInterface(files []*ast.File, args TypeFromInterfaceArgs) (*Type, er
 	// It must adhere to these properties:
 	// * No parameters
 	// * No results
-	// * Private (name starts with lowercase)
 	var typeFunctionName string
 	ifaceT := iface.Type.(*ast.InterfaceType)
 	for _, methodField := range ifaceT.Methods.List {
@@ -72,9 +71,6 @@ func TypeFromInterface(files []*ast.File, args TypeFromInterfaceArgs) (*Type, er
 			continue
 		}
 		name := methodField.Names[0].Name
-		if name[0] < 'a' || 'z' < name[0] {
-			continue
-		}
 		typeFunctionName = name
 	}
 	if typeFunctionName == "" {
