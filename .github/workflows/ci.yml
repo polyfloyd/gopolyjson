@@ -19,6 +19,11 @@ jobs:
       with:
         go-version: stable
 
+    - name: Check go mod
+      run: |
+        go mod tidy
+        git diff --exit-code go.mod
+        git diff --exit-code go.sum
     - run: gofmt -s -d .
     - run: go build -v ./cmd/polyjson
     - run: ./polyjson -type Shape -package ./testdata
